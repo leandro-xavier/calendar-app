@@ -1,7 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Modal from 'react-modal';
 import DateTimePicker from 'react-datetime-picker';
-import moment from 'moment'
+import moment from 'moment';
+import Swal from 'sweetalert2';
+import { useSelector, useDispatch } from 'react-redux';
+
+import { uiCloseModal } from '../../actions/ui';
+import { eventAddNew, eventClearActiveEvent, eventUpdated } from '../../actions/events';
 
 const customStyles = {
     content: {
@@ -17,21 +22,37 @@ const customStyles = {
   Modal.setAppElement('#root');
 
   const now = moment().minutes(0).seconds(0).add(1, 'hours');
-  const end = now.clone().add(1,'hours')
+  const endNow = now.clone().add(1,'hours')
+
+  const initEvent = {
+      title: '',
+      notes: '',
+      start: now.toDate(),
+      end: endNow.toDate()
+  }
 
 export const CalendarModal = () => {
+    const dispatch = useDispatch();
+
+   const {modalOpen} = useSelector(state => state.ui);
+   const {activeEvent} = useSelector(state => state.calendar);
+
 
    const [dateStart, setDateStart] = useState(now.toDate())
-   const [dateEnd, setDateEnd] = useState(end.toDate())
+   const [dateEnd, setDateEnd] = useState(endNow.toDate())
+   const [titleValid, setTitleValid] = useState(true)
 
-   const [formValues, setFormValues] = useState({
-       title: 'evento',
-       notes: '',
-       start: now.toDate(),
-       end: end.toDate()
-   });
+   const [formValues, setFormValues] = useState(initEvent);
 
-   const {title, notes} = formValues;
+   const {title, notes, start, end} = formValues;
+
+   useEffect(() => {
+       if(activeEvent ){
+            setFormValues(activeEvent)
+       }else{
+           setFormValues(initEvent)
+       }
+   }, [activeEvent])
 
 const handleInputChange = ({target}) => {
     
@@ -43,7 +64,9 @@ const handleInputChange = ({target}) => {
  
 
     const closeModal = () => {
- 
+        dispatch(uiCloseModal());
+        dispatch(eventClearActiveEvent())
+        setFormValues(initEvent)
     }
 
     const handleStartDateChange = (e) =>{
@@ -67,18 +90,44 @@ const handleInputChange = ({target}) => {
     const handleSubmit = (e) => {
         e.preventDefault()
         
-    }
+        const momentStart = moment(start)
+        const momentEnd = moment(end)
+
+        if(momentEnd.isSameOrAfter(momentStart)){
+        return Swal.fire('error, la fecha de fin debe ser mayor a la de inicio')
+        }
+
+        if(title.trim().length < 2){
+            return setTitleValid(false) 
+        }
+
+
+        if(activeEvent){
+            dispatch(eventUpdated(formValues))
+        }else{
+            dispatch(eventAddNew({
+                ...formValues,
+                id: new Date().getTime(),
+                user:{
+                    _id: '123',
+                    name: 'Leandro'
+                }
+            }))
+        }
+       
+        setTitleValid(true)
+        closeModal();
+    } 
       return (
         <Modal
-        isOpen={true}
-       // onAfterOpen={afterOpenModal}
+        isOpen={modalOpen}
         onRequestClose={closeModal}
         style={customStyles}
         closeTimeoutMS={200}
         className="modal"
         overlayClassName="modal-fondo"
       >
-          <h1> Nuevo evento </h1>
+          <h1> {(activeEvent) ? 'Editar evento' : 'Nuevo evento'} </h1>
 <hr />
 <form className="container"
 onSubmit={handleSubmit}
@@ -108,7 +157,7 @@ onSubmit={handleSubmit}
         <label>Titulo y notas</label>
         <input 
             type="text" 
-            className="form-control"
+            className={`form-control ${!titleValid && 'is-invalid'}`}
             placeholder="Título del evento"
             name="title"
             autoComplete="off"
