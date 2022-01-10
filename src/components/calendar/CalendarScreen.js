@@ -20,7 +20,7 @@ const localizer = momentLocalizer(moment);
 
 export const CalendarScreen = () => {
 
-    const dispatch = useDispatch()
+    const dispatch = useDispatch();
 
     const {events} = useSelector(state => state.calendar)
     const {activeEvent} = useSelector(state => state.calendar);
