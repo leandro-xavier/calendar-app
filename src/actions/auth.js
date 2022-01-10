@@ -1,6 +1,7 @@
 import Swal from 'sweetalert2';
 import { fetchConToken, fetchSinToken } from '../helpers/fetch'
 import { types } from '../types/types';
+import { eventLogout } from './events';
 
 export const startLogin = (email, password) => {
     return async(dispatch) => { //dispatch esta disponible gracias a thunk
@@ -75,7 +76,7 @@ const login = (user) => ({ // cuando se pone entre parentesis inmediatamente se 
 export const startLogout = () => {
     return (dispatch) => {
         localStorage.clear() //borrar el token del localstorage 
-
+        dispatch(eventLogout()) //borrar el state y restablecerlo al initial state
         dispatch(logout())
     }
 }
